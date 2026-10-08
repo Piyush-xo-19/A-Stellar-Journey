@@ -267,6 +267,8 @@ export class CelestialBody {
   }
 
   update(time, delta, isFocused, ORBIT_MULTIPLIER, ROTATION_MULTIPLIER, MOON_MULTIPLIER) {
+    // The devourer owns the entire body's transform while swallowing it.
+    if (this.isConsumed || this.isBeingConsumed) return;
     if (this.id !== 'sun' && !this.isFixedPosition) {
       this.orbitAngle = time * ORBIT_MULTIPLIER * this.orbit * 0.01; 
       this.meshGroup.position.x = Math.cos(this.orbitAngle) * this.dist;

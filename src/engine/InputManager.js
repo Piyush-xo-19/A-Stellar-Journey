@@ -50,7 +50,13 @@ export class InputManager {
       this.mouseVec.y = -(e.clientY / window.innerHeight) * 2 + 1;
       this.raycaster.setFromCamera(this.mouseVec, this.camera);
       
-      const intersects = this.raycaster.intersectObjects(this.interactableMeshes);
+      const visibleMeshes = this.interactableMeshes.filter(mesh => {
+        for (let parent = mesh; parent; parent = parent.parent) {
+          if (!parent.visible) return false;
+        }
+        return true;
+      });
+      const intersects = this.raycaster.intersectObjects(visibleMeshes);
       
       if (intersects.length > 0 && this.onPlanetClick) {
         this.onPlanetClick(intersects[0].object);

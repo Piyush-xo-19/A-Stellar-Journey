@@ -6,6 +6,7 @@ export class StarSystem {
     this.scene = scene;
     this.systemData = systemData;
     this.bodies = [];
+    this.orbits = new Map();
     
     // Light from the central star
     this.sunLight = new THREE.PointLight(0xffffff, 2.5, 800);
@@ -18,7 +19,7 @@ export class StarSystem {
         this.scene.add(body.meshGroup);
         
         if (config.id !== 'sun') {
-            this.createOrbit(config.dist);
+            this.orbits.set(config.id, this.createOrbit(config.dist));
         }
     });
   }
@@ -30,6 +31,7 @@ export class StarSystem {
     const mesh = new THREE.Mesh(geo, mat);
     mesh.rotation.x = Math.PI / 2;
     this.scene.add(mesh);
+    return mesh;
   }
 
   getInteractables() {

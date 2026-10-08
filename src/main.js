@@ -17,6 +17,9 @@ import { localGroupData } from './data/localGroup.js';
 import { superclustersData } from './data/superclusters.js';
 import { SuperclusterRenderer } from './entities/SuperclusterRenderer.js';
 import { MultiverseRenderer } from './entities/MultiverseRenderer.js';
+import { PlanetDevourer } from './entities/PlanetDevourer.js';
+import { DevourerControls } from './engine/DevourerControls.js';
+import { DevourerInput } from './engine/DevourerInput.js';
 
 class App {
   constructor() {
@@ -44,6 +47,8 @@ class App {
     
     this.superclusters = new SuperclusterRenderer(this.renderer.scene);
     this.multiverse = new MultiverseRenderer(this.renderer.scene);
+    this.devourer = new PlanetDevourer(this.renderer.scene, this.solarSystem);
+    this.systemTime = 0;
 
     // Engine Managers — total sections = planets + zoom-out sections
     const totalSections = solarSystemData.length + zoomOutSections.length;
@@ -63,6 +68,19 @@ class App {
     this.ORBIT_MULTIPLIER = 4000;  
     this.ROTATION_MULTIPLIER = 12;
     this.MOON_MULTIPLIER = 10;
+    this.devourerInput = new DevourerInput(this.devourer);
+
+    this.devourerControls = new DevourerControls(this.devourer, {
+      onStart: () => {
+        if (this.activeSystemId !== 'solar') this.exitStarSystem();
+        this.unfocus();
+        this.devourer.start();
+      },
+      onRestore: () => this.devourer.restore(),
+    });
+    this.devourer.onConsume = body => {
+      if (this.activePlanetId === body.id) this.unfocus();
+    };
 
     this.bindEvents();
     
@@ -185,6 +203,7 @@ class App {
     };
 
     this.inputManager.onPlanetClick = (mesh) => {
+      if (this.devourer.active) return;
       if (this.activePlanetId === mesh.userData.id) {
         this.unfocus();
       } else {
@@ -214,6 +233,10 @@ class App {
     };
 
     window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && this.devourer.active) {
+        this.devourer.restore();
+        return;
+      }
       if (e.key === 'Escape' && this.activePlanetId) {
         this.unfocus();
       }
@@ -223,8 +246,10 @@ class App {
   animate() {
     requestAnimationFrame(this.animate.bind(this));
     
-    const delta = this.clock.getDelta();
+    const delta = document.hidden ? 0 : Math.min(this.clock.getDelta(), 0.05);
     const time = this.clock.getElapsedTime();
+    // Hold the orbital layout steady during play so targets can be approached.
+    if (!this.devourer.active) this.systemTime += delta;
 
     // 1. Update Input state
     this.inputManager.update();
@@ -246,7 +271,9 @@ class App {
 
     // 5. Update Universe & System
     this.universe.update(time);
-    this.solarSystem.update(time, delta, this.activePlanetId, this.ORBIT_MULTIPLIER, this.ROTATION_MULTIPLIER, this.MOON_MULTIPLIER);
+    this.solarSystem.update(this.systemTime, delta, this.activePlanetId, this.ORBIT_MULTIPLIER, this.ROTATION_MULTIPLIER, this.MOON_MULTIPLIER);
+    this.devourer.update(delta);
+    this.devourerControls.updateMap();
 
     // 6. Update Camera Rig — now handles zoom-out sections too
     const allEntities = [...this.solarSystem.getPlanetsData(), ...this.galaxy.getStarsData()];
@@ -262,16 +289,30 @@ class App {
       zoomLevel: 2 
     }];
 
-    this.cameraRig.update(
-        delta, 
-        this.inputManager.scrollFraction, 
-        this.inputManager.targetScrollVelocity, 
-        activeSystemPlanets, 
-        this.activePlanetId, 
-        time,
-        currentZoomOutSections,
-        allEntities
-    );
+    if (this.devourer.active) {
+      const frame = this.devourer.getCameraFrame(this.renderer.camera.aspect);
+      const blend = 1 - Math.exp(-delta * 3);
+      this.cameraRig.currentZoomLevel = 0;
+      this.cameraRig.targetPos.copy(frame.position);
+      this.cameraRig.targetLook.copy(frame.look);
+      this.cameraRig.smoothPos.lerp(frame.position, blend);
+      this.cameraRig.smoothLook.lerp(frame.look, blend);
+      this.renderer.camera.position.copy(this.cameraRig.smoothPos);
+      this.renderer.camera.lookAt(this.cameraRig.smoothLook);
+      this.renderer.camera.fov = 45;
+      this.renderer.camera.updateProjectionMatrix();
+    } else {
+      this.cameraRig.update(
+          delta,
+          this.inputManager.scrollFraction,
+          this.inputManager.targetScrollVelocity,
+          activeSystemPlanets,
+          this.activePlanetId,
+          time,
+          currentZoomOutSections,
+          allEntities
+      );
+    }
 
     // Update Debug info if available
     if (this.uiManager.debugInfo && this.cameraRig) {

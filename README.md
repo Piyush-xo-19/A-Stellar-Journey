@@ -4,6 +4,13 @@
 Stellar Journey is an immersive, high-performance 3D spatial simulator that allows users to traverse from the surface of individual planets all the way out to the boundaries of the theoretical multiverse. Driven entirely by scrolling, the camera flies through multiple orders of cosmic magnitude seamlessly, presenting an educational and visually stunning journey through our universe.
 
 ## Core Features and Uniqueness
+
+### Cosmic Devourer
+
+Use **Play as the monster** to control a 3D creature with animated jaws, glowing eyes, and six trailing tentacles. Move with **WASD** (W up, A left, S down, D right), get close to a planet, and press **Enter** to eat it. Eat all nine worlds, including Pluto, in any order to win. The camera follows your movement, a solar map shows the remaining planets, and a nearby-target prompt tells you when you can take a bite. Planet orbits hold still during play so you can line up your approach.
+
+Each world, its atmosphere, rings, and moons shrink into the monster's mouth with a spiraling particle stream; its orbit disappears after it is eaten. The Sun remains in place. Use **Pause / Resume**, **Restore planets** (or **Escape**) to return to exploration, and **Play again** after winning. Switching away from the game pauses it and clears held keys. All planets are restored without reloading the page.
+
 What separates Stellar Journey from traditional 3D web experiences is its vast, seamless scale. Standard 3D web engines suffer from floating-point inaccuracies and depth-buffer artifacts when rendering distances spanning from mere thousands of units (planetary scale) to tens of millions of units (multiverse scale). 
 
 This project solves those limitations through:
